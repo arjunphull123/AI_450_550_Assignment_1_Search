@@ -299,6 +299,14 @@ class CornersProblem(search.SearchProblem):
         # Please add any code here which you would like to use
         # in initializing the problem
         "*** YOUR CODE HERE ***"
+        # state space should look like: (position, corners visited)
+        visited_corners = [False, False, False, False]  # corresponds to self.corners
+        for i, corner in enumerate(self.corners):
+            if self.startingPosition == corner:
+                visited_corners[i] = True
+
+        self.startState = (self.startingPosition, tuple(visited_corners))
+        self.startingGameState = startingGameState  # this will be important for mazeDistance
 
     def getStartState(self):
         """
@@ -307,7 +315,7 @@ class CornersProblem(search.SearchProblem):
         """
 
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        return self.startState
 
     def isGoalState(self, state):
         """
@@ -315,7 +323,10 @@ class CornersProblem(search.SearchProblem):
         """
 
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        for corner in state[1]:
+            if not corner:
+                return False
+        return True
 
     def getSuccessors(self, state):
         """
@@ -338,6 +349,18 @@ class CornersProblem(search.SearchProblem):
             #   hitsWall = self.walls[nextx][nexty]
 
             "*** YOUR CODE HERE ***"
+            position = state[0]
+            visited_corners = list(state[1])
+            x,y = position
+            dx, dy = Actions.directionToVector(action)
+            nextx, nexty = int(x + dx), int(y + dy)
+            hitsWall = self.walls[nextx][nexty]
+
+            if not hitsWall:
+                next_pos = nextx, nexty
+                if next_pos in self.corners:
+                    visited_corners[self.corners.index(next_pos)] = True
+                successors.append(((next_pos, tuple(visited_corners)), action, 1))
 
         self._expanded += 1  # DO NOT CHANGE
         return successors
@@ -375,8 +398,44 @@ def cornersHeuristic(state, problem):
     walls = problem.walls  # These are the walls of the maze, as a Grid (game.py)
 
     "*** YOUR CODE HERE ***"
+    """
+    Heuristic: The Manhattan distance from the current position to the furthest unvisited corner.
 
-    return 0  # Default to trivial solution
+               If there are no unvisited corners, this returns 0. (Goal!)
+
+               The heuristic will be nonzero and equal to the cost of the shortest path to the goal ONLY if:
+               - there is one unvisited corner;
+               - the path to that corner involves 0 or 1 turns.
+
+               In all other cases, the shortest path to the goal will be greater than the heuristic.
+
+               Therefore the heuristic is admissible.
+
+               All legal actions have a cost of 1. Actions in the direction of the furthest corner will
+               decrease the Manhattan distance to that corner by 1. Actions not in the direction of the
+               furthest corner will increase the Manhattan distance to that corner by 1. Thus any action
+               with cost c can drop the heuristic value by at most c.
+
+               Therefore the heuristic is consistent.
+    """
+
+    position, visited_corners = state  # get info from the given state
+    heuristic = 0
+
+    # get a list of unvisited corners
+    unvisited_corners = [corners[i] for i in range(len(visited_corners)) if not visited_corners[i]]
+
+    if len(unvisited_corners) > 0:
+        furthest = unvisited_corners[0]
+
+        for corner in unvisited_corners:
+            dist = util.manhattanDistance(position, corner)
+            if dist > util.manhattanDistance(position, furthest):
+                furthest = corner
+        
+        heuristic += util.manhattanDistance(position, furthest)
+
+    return heuristic
 
 
 class AStarCornersAgent(SearchAgent):
@@ -473,10 +532,24 @@ def foodHeuristic(state, problem):
     problem.heuristicInfo['wallCount']
     """
     position, foodGrid = state
-
+    
     "*** YOUR CODE HERE ***"
+    heuristic = 0
+    # manhattan distance to furthest food item is admissible and consistent,
+    #   but it expands 9551 nodes
+    # maze distance to furthest food item works and only expands 4137 nodes!
+    position, foodGrid = state
+    food_list = foodGrid.asList()
+    if len(food_list) > 0:
+        dist = 0
+        for food in food_list:
+            # get the maze distance to food
+            d = mazeDistance(position, food, problem.startingGameState)
+            if d > dist:  # update furthest food
+                dist = d
 
-    return 0
+        heuristic += dist
+    return heuristic
 
 
 class ClosestDotSearchAgent(SearchAgent):
@@ -511,7 +584,7 @@ class ClosestDotSearchAgent(SearchAgent):
         problem = AnyFoodSearchProblem(gameState)
 
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        return search.uniformCostSearch(problem)
 
 
 class AnyFoodSearchProblem(PositionSearchProblem):
@@ -548,7 +621,7 @@ class AnyFoodSearchProblem(PositionSearchProblem):
         x, y = state
 
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        return self.food[x][y]  # return True if position is food, False otherwise
 
 
 def mazeDistance(point1, point2, gameState):
