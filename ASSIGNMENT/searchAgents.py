@@ -303,7 +303,7 @@ class CornersProblem(search.SearchProblem):
         visited_corners = [False, False, False, False]  # list of bool values representing whether a corner has been visited
 
         if self.startingPosition in self.corners:  # if the starting position is a corner
-            visited_corners[self.corners.index(self.startingPosition)] == True  # mark that corner as True (visited)
+            visited_corners[self.corners.index(self.startingPosition)] = True  # mark that corner as True (visited)
 
         self.startState = (self.startingPosition, tuple(visited_corners))  # store visited corner as tuple so it is hashable
         # state space: state = ( (x,y), (bool, bool, bool, bool) )
