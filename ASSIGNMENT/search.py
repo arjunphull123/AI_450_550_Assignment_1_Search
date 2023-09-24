@@ -118,7 +118,7 @@ class Node:
         return path.list  # return the contents of the queue
 
 def graphSearch(problem, frontier, heuristic=None):
-    """This function conducts a graph search for the given problem. The strategy used
+    """This function conducts a generic graph search for the given problem. The strategy used
     is determined by the data structure of the given frontier, as follows:
     - If the frontier is a Stack, the function uses depth-first-search.
     - If the frontier is a Queue, the function uses breadth-first-search.
