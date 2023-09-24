@@ -81,100 +81,99 @@ class Node:
 
     def __init__(self, state, parent=None, action=None, path_cost=0, heuristic_cost=0):
         self.state = state
-        self.parent = parent
-        self.action = action
-        self.heuristic_cost = heuristic_cost
-        self.path_cost = path_cost
-        if self.parent:
-            self.path_cost += self.parent.path_cost
-
-    def get_path(self):
-        """Gets the path from the initial state to the current state.
-
-        :return: A list of actions representing the path from the initial state
-        to the current state.
-        """
-        path = []  # initialize path list
-        current_node = self  # set current node to expand
-        while current_node is not None:  # will traverse the entire path
-            if current_node.action is not None:  # if there is an action to add
-                path.append(current_node.action)  # add the action to the path
-            current_node = current_node.parent  # jump up one level to parent
-        path.reverse() # reverse the path
-        return path
-    
+        self.parent = parent  # defaults to None for starting node
+        self.action = action  # defaults to None
+        self.heuristic_cost = heuristic_cost  # f(n)
+        self.path_cost = path_cost  # g(n)
+        if self.parent:  # because self.path_cost passed in is just the incremental cost,
+            self.path_cost += self.parent.path_cost  # need to account for parent's cost
 
     def in_frontier(self, frontier):
-        """Returns True if self.state is in frontier, False otherwise.
+        """When using breadth-first search, checks if a given state is already in
+        the frontier Queue.
 
-        :param frontier: A Stack, Queue, or PriorityQueue.
+        :param frontier: A Queue.
         :return: True if self.state is in frontier, False otherwise.
         """
-        try:
-            for node in frontier.list:  # iterate across the frontier list
-                if node.state == self.state:  # compare states
-                    return True
-            return False
-        except AttributeError:
-            for (priority, count, item) in frontier.heap:  # iterate across the frontier heap
-                if item.state == self.state:  # compare states
-                    return True
-            return False
+        for node in frontier.list:  # iterate across the frontier list
+            if node.state == self.state:  # compare states
+                return True
+        return False  # returns if there are no matches
+
+    def get_path(self):
+        """Gets the path from the starting state to the current state.
+
+        :return: A list of actions representing the path from the starting state
+        to the current state.
+        """
+        path = util.Queue()  # initialize FIFO path
+        current_node = self  # intialize the current node
+
+        while current_node:  # recursively adds the parent's action to path
+            # this loop will break once it reaches the starting node of the problem
+            # (when the current node has no parent)
+            if current_node.action:  # if there is an action to add
+                path.push(current_node.action)  # add the action to the path
+            current_node = current_node.parent  # jump up one level to parent
+        return path.list  # return the contents of the queue
 
 def graphSearch(problem, frontier, heuristic=None):
     """This function conducts a graph search for the given problem. The strategy used
     is determined by the data structure of the given frontier, as follows:
     - If the frontier is a Stack, the function uses depth-first-search.
     - If the frontier is a Queue, the function uses breadth-first-search.
-    - If the frontier is a PriorityQueue, the function uses uniform-cost-search.
+    - If the frontier is a PriorityQueue with no heuristic passed in, the function
+      uses uniform-cost-search.
     - If there is a heuristic function passed in, the function uses A* search.
 
     :param problem: A search problem.
     :param frontier: A Stack, Queue, or PriorityQueue.
     :return: A list of actions that lead to the problem's goal state.
     """
-    start = Node(problem.getStartState())
+    start = Node(problem.getStartState())  # get the start state
 
-    if problem.isGoalState(start.state):  # check for initial goal
-        return start.get_path()
+    if heuristic:  # if there is a heuristic passed in, use A* search
+        start.heuristic_cost = heuristic(start.state, problem)  # get the heuristic cost of the node (to augment the path cost)
     
-    if heuristic:
-        start.heuristic_cost = heuristic(start.state, problem)  # get the heuristic cost of the node if using A*
-    
+    # initialize the frontier using the initial state of problem
     if isinstance(frontier, util.PriorityQueue):
         frontier.push(start, start.path_cost + start.heuristic_cost)  # push the start node with the path cost (+ heuristic cost if using A*)
     else:
         frontier.push(start)  # push the start node to the frontier
-    explored = set()  # initialize explored set
     
-    while not frontier.isEmpty():
-        node = frontier.pop()  # pop a node
+    explored = set()  # initialize the explored set to be empty
+    
+    while not frontier.isEmpty():  # loop do; if the frontier is empty then return failure
+        node = frontier.pop()  # choose a leaf node and remove it from the frontier
 
-        if problem.isGoalState(node.state):  # goal-test
-            return node.get_path()
+        if problem.isGoalState(node.state):  # if the node contains a goal state
+            return node.get_path()  # then return the corresponding solution
         
         if node.state not in explored:  # expand the node if it has not been explored
-            explored.add(node.state)  # add node to explored
+            explored.add(node.state)  # add the node to the explored set
 
-            successors = problem.getSuccessors(node.state)  # expand node
-            for successor in successors:
-                state = successor[0]
-                action = successor[1]
-                cost = successor[2]
+            # expand the chosen node:
+            successors = problem.getSuccessors(node.state)  # get successor states from the node
+            
+            for successor in successors:  # iterate through the successors
+                state = successor[0]  # unpack the state
+                action = successor[1]  # unpack the action
+                cost = successor[2]  # unpack the cost (defaults to 0 for DFS and BFS)
                 child = Node(state, node, action, cost)  # create child node
 
-                if child.state not in explored:
-                    if isinstance(frontier, util.Stack):  # handle Stack
+                # add the resulting nodes to the frontier only if not in the frontier or explored set
+                if child.state not in explored:  # only proceed if node is not in explored set
+                    if isinstance(frontier, util.Stack):
+                        # using DFS; the child is not in the frontier, so no need to check
                         frontier.push(child)
-                    elif isinstance(frontier, util.PriorityQueue):  # handle PriorityQueue
-                        if heuristic:  # handle A*
-                            child.heuristic_cost = heuristic(child.state, problem)
-                        frontier.update(child, child.path_cost + child.heuristic_cost)  # A* is the same as uniform cost, except heuristic augments the cost
-                    elif not child.in_frontier(frontier):  # handle Queue
-                        frontier.push(child)
-
-    # If no solution is returned:
-    util.raiseNotDefined()
+                    elif isinstance(frontier, util.PriorityQueue):
+                        # using UCS or A*
+                        if heuristic:  # using A*
+                            child.heuristic_cost = heuristic(child.state, problem)  # get the heuristic cost
+                        # otherwise, heuristic_cost defaults to 0
+                        frontier.update(child, child.path_cost + child.heuristic_cost)  # only pushes the state if not already in frontier; see util.py
+                    elif not child.in_frontier(frontier):  # using BFS; must check if state is in the frontier
+                        frontier.push(child)  # adds child to frontier only if not already in frontier
 
 def depthFirstSearch(problem):
     """
@@ -192,6 +191,7 @@ def depthFirstSearch(problem):
     """
 
     "*** YOUR CODE HERE ***"
+    # conduct graph search with a Stack (LIFO)
     return graphSearch(problem, util.Stack())
 
 
@@ -199,6 +199,7 @@ def breadthFirstSearch(problem):
     """Search the shallowest nodes in the search tree first."""
 
     "*** YOUR CODE HERE ***"
+    # conduct graph search with a Queue (FIFO)
     return graphSearch(problem, util.Queue())
 
 
@@ -206,6 +207,7 @@ def uniformCostSearch(problem):
     """Search the node of least total cost first."""
 
     "*** YOUR CODE HERE ***"
+    # conduct graph search with a priority queue and no heuristic
     return graphSearch(problem, util.PriorityQueue())
 
 
@@ -221,6 +223,7 @@ def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
 
     "*** YOUR CODE HERE ***"
+    # identical to UCS, except with a heuristic
     return graphSearch(problem, util.PriorityQueue(), heuristic)
 
 
