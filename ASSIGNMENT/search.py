@@ -74,17 +74,19 @@ def tinyMazeSearch(problem):
     return [s, s, w, s, w, w, s, w]
 
 class Node:
-    """This class defines the structure of a node for use in the following
-    search functions. Each node has a state, a parent, an action, and a path
-    cost.
+    """This class defines the structure of a node for use in the graph search function.
+        Each node has a state (its position), a parent (the node before it), an action
+        (the action required to get there from its parent), and a path cost (the cost 
+        to get to that node).
     """
 
     def __init__(self, state, parent=None, action=None, path_cost=0, heuristic_cost=0):
         self.state = state
         self.parent = parent  # defaults to None for starting node
         self.action = action  # defaults to None
-        self.heuristic_cost = heuristic_cost  # f(n)
+        self.heuristic_cost = heuristic_cost  # h(n)
         self.path_cost = path_cost  # g(n)
+        # note: f(n) = g(n) + h(n)
         if self.parent:  # because self.path_cost passed in is just the incremental cost,
             self.path_cost += self.parent.path_cost  # need to account for parent's cost
 
@@ -115,7 +117,7 @@ class Node:
             if current_node.action:  # if there is an action to add
                 path.push(current_node.action)  # add the action to the path
             current_node = current_node.parent  # jump up one level to parent
-        return path.list  # return the contents of the queue
+        return path.list  # return the list of the queue (in order from last added to first added)
 
 def graphSearch(problem, frontier, heuristic=None):
     """This function conducts a generic graph search for the given problem. The strategy used
