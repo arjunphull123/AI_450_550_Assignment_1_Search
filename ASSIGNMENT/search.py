@@ -77,7 +77,9 @@ class Node:
     """This class defines the structure of a node for use in the graph search function.
         Each node has a state (its position), a parent (the node before it), an action
         (the action required to get there from its parent), and a path cost (the cost 
-        to get to that node).
+        to get to that node). Node construction allows the graph search function to build
+        a linked search tree as it searches for the optimal path. A simple get_path method
+        allows for easy retrieval of the optimal path of actions.
     """
 
     def __init__(self, state, parent=None, action=None, path_cost=0, heuristic_cost=0):
@@ -100,18 +102,18 @@ class Node:
         for node in frontier.list:  # iterate across the frontier list
             if node.state == self.state:  # compare states
                 return True
-        return False  # returns if there are no matches
+        return False  # returns False if there are no matches
 
     def get_path(self):
-        """Gets the path from the starting state to the current state.
+        """Gets the path from the starting node to the current node.
 
-        :return: A list of actions representing the path from the starting state
-        to the current state.
+        :return: A list of actions representing the path from the starting node
+        to the current node.
         """
-        path = util.Queue()  # initialize FIFO path
+        path = util.Queue()  # initialize FIFO path queue
         current_node = self  # intialize the current node
 
-        while current_node:  # recursively adds the parent's action to path
+        while current_node:  # recursively pushes the parent's action to path
             # this loop will break once it reaches the starting node of the problem
             # (when the current node has no parent)
             if current_node.action:  # if there is an action to add
@@ -209,7 +211,7 @@ def uniformCostSearch(problem):
     """Search the node of least total cost first."""
 
     "*** YOUR CODE HERE ***"
-    # conduct graph search with a priority queue and no heuristic
+    # conduct graph search with a PriorityQueue and no heuristic
     return graphSearch(problem, util.PriorityQueue())
 
 
@@ -225,7 +227,7 @@ def aStarSearch(problem, heuristic=nullHeuristic):
     """Search the node that has the lowest combined cost and heuristic first."""
 
     "*** YOUR CODE HERE ***"
-    # identical to UCS, except with a heuristic
+    # identical to UCS, except the cost is augmented with heuristic
     return graphSearch(problem, util.PriorityQueue(), heuristic)
 
 
